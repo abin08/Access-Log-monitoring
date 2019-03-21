@@ -1,0 +1,2 @@
+NGINXTIME %{MONTHDAY}/%{MONTH}/%{YEAR}:%{TIME} %{ISO8601_TIMEZONE}
+NGINXACCESS	%{IPORHOST:clienthost} - %{GREEDYDATA:remote_user} \[%{NGINXTIME}\] "%{WORD:method} %{GREEDYDATA:request_url} %{GREEDYDATA} %{NUMBER:status} %{NUMBER:contentLength}
