@@ -1,7 +1,6 @@
 package com.kafka.streams;
 
 import java.util.Arrays;
-import java.util.List;
 import java.util.Properties;
 
 import org.apache.kafka.common.serialization.Serdes;
@@ -44,7 +43,7 @@ public class StreamProcessor {
 		new KeyValueMapper<String, String, KeyValue<String, String>>() {
 		    @Override
 		    public KeyValue<String, String> apply(String key, String value) {
-			Logs logs = getLogs(value);
+			Logs logs = new Logs(value);
 			return new KeyValue<String, String>(logs.getIp(),logs.toString());
 		    }
 		});
@@ -58,18 +57,5 @@ public class StreamProcessor {
 	streams.cleanUp();
 	streams.start();
 	Runtime.getRuntime().addShutdownHook(new Thread(streams::close));
-    }
-
-    /**
-     * Converts the value from kafka stream into pojo object 
-     * @param text
-     * @return
-     */
-    static Logs getLogs(String text) {
-	List<String> list = Arrays.asList(text.split(" "));
-	Logs logs = new Logs();
-	logs.setIp(list.get(0));
-	logs.setStatus(list.get(list.size() - 2));
-	return logs;
     }
 }

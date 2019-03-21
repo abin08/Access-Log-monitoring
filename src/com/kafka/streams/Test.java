@@ -16,7 +16,7 @@ public class Test {
     
     static Logs getLogs(String text) {
 	List<String> list = Arrays.asList(text.split(" "));
-	Logs logs = new Logs();
+	Logs logs = new Logs(text);
 	logs.setIp(list.get(0));
 	logs.setStatus(list.get(list.size()-2));
 	return logs;
