@@ -4,12 +4,11 @@ package com.kafka.pojo;
  * @author Abin K. Antony
  * 20-Mar-2019
  * @version 1.0
- * Copyright (c) 2019 Torry Harris Business Solutions, Inc. All Rights Reserved.
  */
 public class Logs {
     String ip;
     String status;
-        
+    
     public String getIp() {
         return ip;
     }
@@ -25,7 +24,5 @@ public class Logs {
     @Override
     public String toString() {
 	return ip + " " + status;
-    }
-    
-    
+    }   
 }
