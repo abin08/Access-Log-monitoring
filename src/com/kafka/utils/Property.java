@@ -18,7 +18,6 @@ public class Property {
 			File file = new File(propertiesFilePath);
 			InputStream in = new FileInputStream(file);
 
-			System.out.println("Read all properties from file");
 			if (in != null) {
 				configProp.load(in);
 			} else {

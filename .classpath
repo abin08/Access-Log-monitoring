@@ -6,7 +6,7 @@
 	<classpathentry kind="lib" path="lib/java-json.jar"/>
 	<classpathentry kind="lib" path="lib/kafka_2.11-2.0.0.jar"/>
 	<classpathentry kind="lib" path="lib/kafka-clients-2.0.0.jar" sourcepath="/home/ubuntu/.m2/repository/org/apache/kafka/kafka-clients/2.0.0/kafka-clients-2.0.0-sources.jar"/>
-	<classpathentry kind="lib" path="lib/kafka-streams-2.0.0.jar"/>
+	<classpathentry kind="lib" path="lib/kafka-streams-2.0.0.jar" sourcepath="/home/ubuntu/.m2/repository/org/apache/kafka/kafka-streams/2.0.0/kafka-streams-2.0.0-sources.jar"/>
 	<classpathentry kind="lib" path="lib/log4j-1.2.17.jar"/>
 	<classpathentry kind="lib" path="lib/rocksdbjni-5.7.3.jar"/>
 	<classpathentry kind="lib" path="lib/slf4j-api-1.7.25.jar"/>
