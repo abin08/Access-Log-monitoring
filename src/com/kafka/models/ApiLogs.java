@@ -23,7 +23,6 @@ public class ApiLogs {
 	this.method = list.get(5);
 	this.api = list.get(6);
 	this.status = list.get(8);
-//	this.bytes = Long.parseLong();
 	this.bytes = getBytes(list.get(9).replaceAll("[^\\d]", ""));
     }
     public String getIp() {
