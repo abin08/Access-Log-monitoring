@@ -16,14 +16,15 @@ public class ApiLogs {
     String status;
     Long bytes;
     
-    public ApiLogs(String value){
+    public ApiLogs(String value) throws NumberFormatException{
 	List<String> list = Arrays.asList(value.split(" "));
 	this.ip = list.get(0);
 	this.timeStamp = list.get(3).replaceAll("\\[", "") + " " + list.get(4).replaceAll("\\]", "");
 	this.method = list.get(5);
 	this.api = list.get(6);
 	this.status = list.get(8);
-	this.bytes = Long.parseLong(list.get(9).replaceAll("[^\\d]", ""));
+//	this.bytes = Long.parseLong();
+	this.bytes = getBytes(list.get(9).replaceAll("[^\\d]", ""));
     }
     public String getIp() {
         return ip;
@@ -47,6 +48,14 @@ public class ApiLogs {
     
     public Long getBytes() {
         return bytes;
+    }
+    
+    private Long getBytes(String str) {
+	Long bytes = 0L;
+	try {
+	    bytes = Long.parseLong(str);
+	}catch (Exception e) {}
+	return bytes;
     }
     
     @Override

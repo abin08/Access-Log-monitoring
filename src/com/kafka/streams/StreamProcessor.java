@@ -10,6 +10,7 @@ import org.apache.kafka.streams.StreamsConfig;
 import org.apache.kafka.streams.kstream.Aggregator;
 import org.apache.kafka.streams.kstream.Initializer;
 import org.apache.kafka.streams.kstream.KStream;
+import org.apache.kafka.streams.kstream.KTable;
 import org.apache.kafka.streams.kstream.KeyValueMapper;
 import org.apache.kafka.streams.kstream.Materialized;
 import org.apache.kafka.streams.kstream.Produced;
@@ -25,8 +26,7 @@ import com.kafka.utils.Property;
 public class StreamProcessor {
     public static void main(String[] args) {
 	String inputTopic = Property.getInstance().getProperty("inputTopic");
-	String bootstrapServers = Property.getInstance()
-		.getProperty("bootstrapServers");
+	String bootstrapServers = Property.getInstance().getProperty("bootstrapServers");
 
 	Properties streamsConfiguration = new Properties();
 	streamsConfiguration.put(StreamsConfig.APPLICATION_ID_CONFIG,
@@ -44,83 +44,85 @@ public class StreamProcessor {
 	input.map(
 		new KeyValueMapper<String, String, KeyValue<String, String>>() {
 		    @Override
-		    public KeyValue<String, String> apply(String key,
-			    String value) {
+		    public KeyValue<String, String> apply(String key,String value) {
 			return new KeyValue<String, String>("total", value);
 		    }
-		}).groupByKey().count().toStream().to("totalCount",
-			Produced.with(Serdes.String(), Serdes.Long()));
+		})
+	.groupByKey()
+	.count()
+	.toStream()
+	.to("totalCount", Produced.with(Serdes.String(), Serdes.Long()));
 
 	// total count using aggregate
 	KStream<String, Long> total = input.map(
 		new KeyValueMapper<String, String, KeyValue<String, String>>() {
 		    @Override
-		    public KeyValue<String, String> apply(String key,
-			    String value) {
+		    public KeyValue<String, String> apply(String key, String value) {
 			return new KeyValue<String, String>("total", value);
 		    }
-		}).groupByKey(Serialized.with(Serdes.String(), Serdes.String()))
-		.aggregate(new Initializer<Long>() {
-		    @Override
-		    public Long apply() {
-			// TODO Auto-generated method stub
-			return 0L;
-		    }
-		}, new Aggregator<String, String, Long>() {
-		    @Override
-		    public Long apply(String key, String value,
-			    Long aggregate) {
-			return aggregate+1;
-		    }
-		}, Materialized.with(Serdes.String(), Serdes.Long())).toStream();
-	total.to("totalCount", Produced.with(Serdes.String(), Serdes.Long()));
-
+		})
+	.groupByKey(Serialized.with(Serdes.String(), Serdes.String()))
+	.aggregate(new Initializer<Long>() {
+	    @Override
+	    public Long apply() {
+		return 0L;
+	    }
+	}, new Aggregator<String, String, Long>() {
+	    @Override
+	    public Long apply(String key, String value,
+		    Long aggregate) {
+		return aggregate+1;
+	    }
+	}, Materialized.with(Serdes.String(), Serdes.Long())).toStream();
+	total.to("totalCounts", Produced.with(Serdes.String(), Serdes.Long()));
+	
+	//map input stream and create custom key
 	KStream<String, ApiLogs> sourceStream = input.map(
 		new KeyValueMapper<String, String, KeyValue<String, ApiLogs>>() {
 		    @Override
 		    public KeyValue<String, ApiLogs> apply(String key,
 			    String value) {
 			ApiLogs apiLogs = new ApiLogs(value);
-			return new KeyValue<String, ApiLogs>(apiLogs.getIp(),
-				apiLogs);
+			return new KeyValue<String, ApiLogs>(apiLogs.getIp(), apiLogs);
 		    }
 		});
 
 	// find the count of each ip
-	sourceStream.mapValues(value -> value.toString())
+	KTable<String, Long> totalCount = sourceStream.mapValues(value -> value.toString())
 		.groupByKey()
-		.count()
-		.toStream()
+		.count();
+	totalCount.toStream()
 		.to("uniqueIpCounts", Produced.with(Serdes.String(), Serdes.Long()));
 	
 	// sum of bytes
-	sourceStream.mapValues(value -> value.getBytes())
-	.groupByKey(Serialized.with(Serdes.String(), Serdes.Long()))
-	.aggregate(new Initializer<Long>() {
-	    @Override
-	    public Long apply() {
-		return 0L;
-	    }
-	}, new Aggregator<String, Long, Long>() {
-	    @Override
-	    public Long apply(String key, Long value,
-		    Long aggregate) {
-		return aggregate+ value;
-	    }
-	}, Materialized.with(Serdes.String(), Serdes.Long()))
-	.toStream()
-	.to("ipBytesSum", Produced.with(Serdes.String(), Serdes.Long()));
+	KTable<String, Long> bytesSum = sourceStream.mapValues(value -> value.getBytes())
+		.groupByKey(Serialized.with(Serdes.String(), Serdes.Long()))
+		.aggregate(new Initializer<Long>() {
+		    @Override
+		    public Long apply() {
+			return 0L;
+		    }
+		}, new Aggregator<String, Long, Long>() {
+		    @Override
+		    public Long apply(String key, Long value, Long aggregate) {
+			return aggregate+ value;
+		    }
+		}, Materialized.with(Serdes.String(), Serdes.Long()));
+	bytesSum.toStream()
+		.to("ipBytesSum", Produced.with(Serdes.String(), Serdes.Long()));
 	
-	
+	// find average of bytes per ip by joining totalCount and bytesSum
+	bytesSum.join(totalCount, (sum, count) -> sum.longValue()/count.longValue())
+		.toStream()
+		.to("averageBytes", Produced.with(Serdes.String(), Serdes.Long()));
+		
 	// find the count of status in each ip address
 	KStream<String, String> ip_status_stream = sourceStream.map(
 		new KeyValueMapper<String, ApiLogs, KeyValue<String, String>>() {
 		    @Override
-		    public KeyValue<String, String> apply(String key,
-			    ApiLogs value) {
+		    public KeyValue<String, String> apply(String key, ApiLogs value) {
 			return new KeyValue<String, String>(
-				value.getIp() + "_" + value.getStatus(),
-				value.toString());
+				value.getIp() + "_" + value.getStatus(), value.toString());
 		    }
 		});
 	ip_status_stream.groupByKey().count().toStream().to("ipStatusCount",
@@ -130,12 +132,10 @@ public class StreamProcessor {
 	KStream<String, String> hours_stream = sourceStream.map(
 		new KeyValueMapper<String, ApiLogs, KeyValue<String, String>>() {
 		    @Override
-		    public KeyValue<String, String> apply(String key,
-			    ApiLogs value) {
+		    public KeyValue<String, String> apply(String key,ApiLogs value) {
 			return new KeyValue<String, String>(
 				value.getTimeStamp().substring(0, 15) + "_"
-					+ value.getIp(),
-				value.toString());
+					+ value.getIp(), value.toString());
 		    }
 		});
 	hours_stream.groupByKey().count().toStream().to("hoursCount",
@@ -144,6 +144,5 @@ public class StreamProcessor {
 	KafkaStreams streams = new KafkaStreams(builder.build(), streamsConfiguration);
 	streams.cleanUp();
 	streams.start();
-	Runtime.getRuntime().addShutdownHook(new Thread(streams::close));
     }
 }
