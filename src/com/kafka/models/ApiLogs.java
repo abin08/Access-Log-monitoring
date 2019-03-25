@@ -23,7 +23,7 @@ public class ApiLogs {
 	this.method = list.get(5);
 	this.api = list.get(6);
 	this.status = list.get(8);
-	this.bytes = getBytes(list.get(9).replaceAll("[^\\d]", ""));
+	this.bytes = getBytes(list.get(9));
     }
     public String getIp() {
         return ip;
@@ -49,10 +49,11 @@ public class ApiLogs {
         return bytes;
     }
     
-    private Long getBytes(String str) {
+    private Long getBytes(String text) {
+	text = text.replaceAll("[^\\d]", "");
 	Long bytes = 0L;
 	try {
-	    bytes = Long.parseLong(str);
+	    bytes = Long.parseLong(text);
 	}catch (Exception e) {}
 	return bytes;
     }
